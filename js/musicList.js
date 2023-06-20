@@ -53,43 +53,43 @@ var musicList = [
         item: [                 // 这里面放歌曲（除非调试，否则这里不要手动添加，不然不会自动加载 music_list.json）
             /*
                 {
-                    id: "1",  // 音乐ID
-                    name: "从别后",  // 音乐名字
-                    artist: "流浪的蛙蛙", // 艺术家名字
-                    album: "..",    // 专辑名字
-                    source: "local",     // 音乐来源
-                    url_id: "1",  // 链接ID
-                    pic_id: "1",  // 封面ID
-                    lyric_id: "1",  // 歌词ID
-                    pic: "static/动漫/斗破苍穹/流浪的蛙蛙 - 从别后.jpg",    // 专辑图片
-                    url: "static/动漫/斗破苍穹/流浪的蛙蛙 - 从别后.mp3",
-                    lyric: "static/动漫/斗破苍穹/流浪的蛙蛙 - 从别后.lrc"
+                    id: "964fc8fd474936dc1eb50654d14703a9",
+                    name: "brave heart - 初代进化曲",
+                    artist: "brave heart",
+                    album: "",
+                    url: "static/动漫/brave heart - 初代进化曲.mp3",
+                    pic: "static/动漫/brave heart - 初代进化曲.jpg",
+                    lyric: "static/动漫/brave heart - 初代进化曲.lrc",
+                    source: "local",
+                    url_id: "964fc8fd474936dc1eb50654d14703a9",
+                    pic_id: "964fc8fd474936dc1eb50654d14703a9",
+                    lyric_id: "964fc8fd474936dc1eb50654d14703a9"
                 },
                 {
-                    id: "2",  // 音乐ID
-                    name: "打上花火",  // 音乐名字
-                    artist: "你的名字", // 艺术家名字
-                    album: "你的名字",    // 专辑名字
-                    source: "local",     // 音乐来源
-                    url_id: "2",  // 链接ID
-                    pic_id: "2",  // 封面ID
-                    lyric_id: "2",  // 歌词ID
-                    pic: "static/动漫/你的名字 - 打上花火.jpg",    // 专辑图片
-                    url: "static/动漫/你的名字 - 打上花火.mp3",
-                    lyric: "static/动漫/你的名字 - 打上花火.lrc"
+                    id: "55503cb295eecbf1bc2bed651583d0af",
+                    name: "妖精的尾巴 - 星",
+                    artist: "妖精的尾巴",
+                    album: "「FAIRY TAIL」ORIGINAL SOUNDTRACK",
+                    url: "static/动漫/妖精的尾巴 - 星.mp3",
+                    pic: "static/动漫/妖精的尾巴 - 星.jpg",
+                    lyric: "static/动漫/妖精的尾巴 - 星.lrc",
+                    source: "local",
+                    url_id: "55503cb295eecbf1bc2bed651583d0af",
+                    pic_id: "55503cb295eecbf1bc2bed651583d0af",
+                    lyric_id: "55503cb295eecbf1bc2bed651583d0af"
                 },
                 {
-                    id: "3",  // 音乐ID
-                    name: "没有人能在我的BGM里打败我",  // 音乐名字
-                    artist: "Apocalyptica 启示录乐队", // 艺术家名字
-                    album: "bilibili晚会2022最美的夜",    // 专辑名字
-                    source: "local",     // 音乐来源
-                    url_id: "3",  // 链接ID
-                    pic_id: "3",  // 封面ID
-                    lyric_id: "3",  // 歌词ID
-                    pic: "static/综艺/bilibili晚会2022最美的夜 - Apocalyptica 启示录乐队 - 没有人能在我的BGM里打败我.jpg",    // 专辑图片
-                    url: "static/综艺/bilibili晚会2022最美的夜 - Apocalyptica 启示录乐队 - 没有人能在我的BGM里打败我.MP3",
-                    lyric: "static/综艺/bilibili晚会2022最美的夜 - Apocalyptica 启示录乐队 - 没有人能在我的BGM里打败我.lrc"
+                    id: "666b6d82bef4b5ab0c02907a50bd1b82",
+                    name: "程响 - 可能",
+                    artist: "程响",
+                    album: "",
+                    url: "static/流行/程响 - 可能.mp3",
+                    pic: "static/流行/程响 - 可能.jpg",
+                    lyric: "static/流行/程响 - 可能.lrc",
+                    source: "local",
+                    url_id: "666b6d82bef4b5ab0c02907a50bd1b82",
+                    pic_id: "666b6d82bef4b5ab0c02907a50bd1b82",
+                    lyric_id: "666b6d82bef4b5ab0c02907a50bd1b82"
                 }  // 列表中最后一首歌大括号后面不要加逗号
             */
         ]
