@@ -1,0 +1,14 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+#music-player {
+    display: inline-block;
+    margin-top: 50px;
+}
+
+input,
+button {
+    margin: 5px;
+}

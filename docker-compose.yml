@@ -1,0 +1,47 @@
+version: '2'
+services:
+  web-music:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: web-music
+    hostname: web-music
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=zh_CN.UTF-8
+      - LANGUAGE=zh_CN.UTF-8
+      - LC_ALL=zh_CN.UTF-8
+      - PROTOCOL=${PROTOCOL}
+      - NGINX_DOMAIN=${DOMAIN}
+    volumes:
+      - ./nginx/etc:/tmp/nginx/etc
+      - ./nginx/cert:/etc/nginx/cert
+      - ./css:/usr/share/nginx/html/css
+      - ./js:/usr/share/nginx/html/js
+      - ./plugns:/usr/share/nginx/html/plugns
+      - ./static:/usr/share/nginx/html/static
+      - ./images:/usr/share/nginx/html/images
+      - ./index.html:/usr/share/nginx/html/index.html
+      - ./favicon.png:/usr/share/nginx/html/favicon.png
+      - ./logs/nginx:/var/log/nginx
+    ports:
+      # HTTP 协议，只能暴露在测试环境
+      - 7080:80
+      # HTTPS 协议，需要挂载有效的 HTTPS 证书
+      - 7443:443
+    networks:
+      music:
+        ipv4_address: 172.168.66.2
+    extra_hosts:
+      - "${DOMAIN}:${INTER_IP}"
+    restart: on-failure
+
+
+networks:
+  music:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet:  172.168.66.0/24
+          gateway: 172.168.66.1

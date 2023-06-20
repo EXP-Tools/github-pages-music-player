@@ -1,0 +1,51 @@
+name: Update Music List
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    branches:
+      - master
+
+jobs:
+  update_music_list:
+    runs-on: ubuntu-latest
+    # 当仓库隶属组织时，赋予流水线“写权限”以便提交变更
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        ref: master
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: pip install -r py/requirements.txt
+
+    - name: Run update_music_list.py
+      run: python py/gen_music_list.py -i "${{ vars.ignores }}"
+
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff --name-only | grep -q "music_list.json"; then
+          echo "::set-output name=has_changes::true"
+        else
+          echo "::set-output name=has_changes::false"
+        fi
+
+    - name: Commit and push changes
+      if: steps.changes.outputs.has_changes == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add static/music_list.json
+        git commit -m "Update music list"
+        git push

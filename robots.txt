@@ -1,0 +1,3 @@
+# 禁止搜索引擎抓取所有文件
+User-agent: *
+Disallow: /

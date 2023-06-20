@@ -1,0 +1,4 @@
+<Files *>
+Header set Access-Control-Allow-Origin "exp-res.github.io"
+</Files>
+
