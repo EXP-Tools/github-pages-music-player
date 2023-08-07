@@ -11,16 +11,21 @@
 
 
 import argparse
+import glob
 import os
+import re
 import json
 import hashlib
 from mutagen.easyid3 import EasyID3
+from datetime import datetime
 from color_log.clog import log
 
 DEFAULT_ENCODING = "utf-8"
 WORK_DIR = "."
 MUSIC_DIR = f"{WORK_DIR}/static"
-MUSIC_LIST = f"{MUSIC_DIR}/music_list.json"
+MUSIC_LIST_PERFIX = "music_list"
+MUSIC_LIST = f"{MUSIC_DIR}/{MUSIC_LIST_PERFIX}_%s.json"
+MUSIC_LIST_JS = "js/player.js"
 MUSIC_SUFFIXES = [ ".mp3", ".wma" ]
 LYRIC_SUFFIX = ".lrc"
 PIC_SUFFIX = ".jpg"
@@ -103,12 +108,43 @@ def main(args) :
             )
             musiclist.add(music)
 
-    musiclist.save_to_file(MUSIC_LIST)
+    del_music_lists()
+    musiclist_path = MUSIC_LIST % now()
+    musiclist.save_to_file(musiclist_path)
+    to_js(musiclist_path)
     log.info(f"完成，共收录 {musiclist.size()} 首歌曲")
 
 
 def calculate_md5(file_path):
     return hashlib.md5(file_path.encode()).hexdigest().lower()
+
+
+def now() :
+    return datetime.now().strftime('%Y%m%d%H%M%S')
+
+
+def del_music_lists() :
+    path = f"{MUSIC_DIR}/{MUSIC_LIST_PERFIX}*"  # 使用 glob 来找到所有以'music_list'开头的文件
+    files = glob.glob(path)
+    for file in files:
+        try:
+            os.remove(file)
+        except:
+            pass
+
+
+def to_js(musiclist_path) :
+    with open(MUSIC_LIST_JS, 'r') as file:
+        content = file.read()
+
+    content = re.sub(
+        r'githubAPI:\s*"' + MUSIC_DIR + r'/' + MUSIC_LIST_PERFIX + r'.*"', 
+        f'githubAPI: "{musiclist_path}"', 
+        content
+    )
+
+    with open(MUSIC_LIST_JS, 'w') as file:
+        file.write(content)
 
 
 class MusicList:

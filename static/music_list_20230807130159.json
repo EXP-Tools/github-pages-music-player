@@ -1,0 +1,50 @@
+[
+    {
+        "id": "9527",
+        "name": "Github 歌单",
+        "cover": "images/album.png",
+        "creatorName": "EXP",
+        "creatorAvatar": "images/avatar.jpg",
+        "item": [
+            {
+                "id": "74f173cf9b0fd87b88f36b76e4d25f54",
+                "name": "妖精的尾巴 - 星",
+                "artist": "妖精的尾巴",
+                "album": "「FAIRY TAIL」ORIGINAL SOUNDTRACK",
+                "url": "static/demo动漫/妖精的尾巴 - 星.mp3",
+                "pic": "static/demo动漫/妖精的尾巴 - 星.jpg",
+                "lyric": "static/demo动漫/妖精的尾巴 - 星.lrc",
+                "source": "local",
+                "url_id": "74f173cf9b0fd87b88f36b76e4d25f54",
+                "pic_id": "74f173cf9b0fd87b88f36b76e4d25f54",
+                "lyric_id": "74f173cf9b0fd87b88f36b76e4d25f54"
+            },
+            {
+                "id": "65de011ba3e651bfa0a68b649cbca0e6",
+                "name": "brave heart - 初代进化曲",
+                "artist": "brave heart",
+                "album": "",
+                "url": "static/demo动漫/brave heart - 初代进化曲.mp3",
+                "pic": "static/demo动漫/brave heart - 初代进化曲.jpg",
+                "lyric": "static/demo动漫/brave heart - 初代进化曲.lrc",
+                "source": "local",
+                "url_id": "65de011ba3e651bfa0a68b649cbca0e6",
+                "pic_id": "65de011ba3e651bfa0a68b649cbca0e6",
+                "lyric_id": "65de011ba3e651bfa0a68b649cbca0e6"
+            },
+            {
+                "id": "c2dfceae044a79617b8fd6cd6ba44019",
+                "name": "程响 - 可能",
+                "artist": "程响",
+                "album": "",
+                "url": "static/demo流行/程响 - 可能.mp3",
+                "pic": "static/demo流行/程响 - 可能.jpg",
+                "lyric": "static/demo流行/程响 - 可能.lrc",
+                "source": "local",
+                "url_id": "c2dfceae044a79617b8fd6cd6ba44019",
+                "pic_id": "c2dfceae044a79617b8fd6cd6ba44019",
+                "lyric_id": "c2dfceae044a79617b8fd6cd6ba44019"
+            }
+        ]
+    }
+]
