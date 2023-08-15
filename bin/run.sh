@@ -16,7 +16,7 @@ set -- `getopt p:d:i: "$@"`
 while [ -n "$1" ]
 do
   case "$1" in
-    -u) PROTOCOL="$2"
+    -p) PROTOCOL="$2"
         shift ;;
     -d) DOMAIN="$2"
         shift ;;
