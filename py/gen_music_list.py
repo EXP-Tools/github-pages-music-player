@@ -134,7 +134,7 @@ def del_music_lists() :
 
 
 def to_js(musiclist_path) :
-    with open(MUSIC_LIST_JS, 'r') as file:
+    with open(MUSIC_LIST_JS, 'r', encoding=DEFAULT_ENCODING) as file:
         content = file.read()
 
     content = re.sub(
@@ -143,7 +143,7 @@ def to_js(musiclist_path) :
         content
     )
 
-    with open(MUSIC_LIST_JS, 'w') as file:
+    with open(MUSIC_LIST_JS, 'w', encoding=DEFAULT_ENCODING) as file:
         file.write(content)
 
 
