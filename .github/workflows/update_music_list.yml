@@ -1,8 +1,8 @@
 name: Update Music List
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
     branches:
       - main
