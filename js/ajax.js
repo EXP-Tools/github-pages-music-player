@@ -95,13 +95,21 @@ function ajaxSearch() {
 // 完善获取音乐信息
 // 音乐所在列表ID、音乐对应ID、回调函数
 function ajaxUrl(music, callback) {
-    return false;
-
     // 已经有数据，直接回调
     if (music.url !== null && music.url !== "err" && music.url !== "") {
         callback(music);
         return true;
     }
+    
+    // 对于本地音乐文件，如果没有URL但有其他信息，可以尝试构建URL
+    if (!music.url && music.name && music.artist) {
+        // 这里可以根据实际情况构建本地文件路径
+        // 暂时标记为无法下载
+        music.url = "err";
+        callback(music);
+        return true;
+    }
+    
     // id为空，赋值链接错误。直接回调
     if (music.id === null) {
         music.url = "err";

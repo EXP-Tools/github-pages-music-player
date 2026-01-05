@@ -83,6 +83,11 @@ function scrollLyric(time) {
     var scroll = (lyricArea.children().height() * i) - ($(".lyric").height() / 2);
     lyricArea.stop().animate({ scrollTop: scroll }, 1000);  // 平滑滚动到当前歌词位置(更改这个数值可以改变歌词滚动速度，单位：毫秒)
 
+    // 同步全屏歌词
+    if (typeof syncFullscreenLyric === 'function') {
+        syncFullscreenLyric();
+    }
+
 }
 
 

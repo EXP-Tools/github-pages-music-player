@@ -30,8 +30,32 @@ $(function () {
     rem.webTitle = document.title;      // 记录页面原本的标题
     rem.errCount = 0;                   // 连续播放失败的歌曲数归零
 
-    initProgress();     // 初始化音量条、进度条（进度条初始化要在 Audio 前，别问我为什么……）
-    initAudio();    // 初始化 audio 标签，事件绑定
+    // 确保CSS完全加载后再初始化，避免进度条偏移量计算错误
+    function initializeWhenReady() {
+        // 检查关键CSS是否已加载
+        var testElement = $('<div class="mkpgb-area" style="position:absolute;top:-1000px;width:100px;"></div>').appendTo('body');
+        var hasCSS = testElement.width() > 0;
+        testElement.remove();
+        
+        if (hasCSS) {
+            initProgress();     // 初始化音量条、进度条
+            initAudio();        // 初始化 audio 标签，事件绑定
+            initFavorites();    // 初始化收藏功能
+        } else {
+            // CSS还没加载完，继续等待
+            setTimeout(initializeWhenReady, 50);
+        }
+    }
+    
+    // 延迟初始化，确保DOM和CSS完全渲染
+    setTimeout(initializeWhenReady, 100);
+    
+    // 页面完全加载后重新计算进度条偏移量
+    $(window).on('load', function() {
+        setTimeout(function() {
+            refreshProgressBars();
+        }, 200);
+    });
 
 
     if (rem.isMobile) {  // 加了滚动条插件和没加滚动条插件所操作的对象是不一样的
@@ -108,21 +132,28 @@ $(function () {
                 '</span>' +
                 '<div class="list-menu" data-no="' + num + '">' +
                 '<span class="list-icon icon-play" data-function="play" title="点击播放这首歌"></span>' +
+                '<span class="list-icon icon-favorite" data-function="favorite" title="收藏/取消收藏"></span>' +
                 '<span class="list-icon icon-download" data-function="download" title="点击下载这首歌"></span>' +
                 '<span class="list-icon icon-share" data-function="share" title="点击分享这首歌"></span>' +
                 '</div>';
             target.html(html);
             $(this).data("loadmenu", true);
+            
+            // 检查是否已收藏，更新收藏按钮样式
+            updateFavoriteButton(num);
         }
     });
 
     // 列表中的菜单点击
-    $(".music-list").on("click", ".icon-play,.icon-download,.icon-share", function () {
+    $(".music-list").on("click", ".icon-play,.icon-favorite,.icon-download,.icon-share", function () {
         var num = parseInt($(this).parent().data("no"));
         if (isNaN(num)) return false;
         switch ($(this).data("function")) {
             case "play":    // 播放
                 listClick(num);     // 调用列表点击处理函数
+                break;
+            case "favorite":    // 收藏
+                toggleFavorite(num);
                 break;
             case "download":    // 下载
                 ajaxUrl(musicList[rem.dislist].item[num], download);
@@ -208,6 +239,28 @@ $(function () {
         }
 
         musicInfo(rem.playlist, rem.playid);
+    });
+
+    // 全屏歌词按钮的处理
+    $("#lyric-fullscreen").click(function () {
+        if (rem.playid === undefined) {
+            layer.msg('请先播放歌曲');
+            return false;
+        }
+
+        enterFullscreenLyric();
+    });
+
+    // 退出全屏歌词按钮的处理
+    $("#exit-fullscreen").click(function () {
+        exitFullscreenLyric();
+    });
+
+    // ESC键退出全屏
+    $(document).keydown(function (e) {
+        if (e.keyCode === 27 && $("#fullscreen-lyric-container").is(":visible")) {
+            exitFullscreenLyric();
+        }
     });
 
     // 播放、暂停按钮的处理
@@ -393,15 +446,157 @@ function thisShare(obj) {
 // 下载歌曲
 // 参数：包含歌曲信息的数组
 function download(music) {
-    if (music.url == 'err' || music.url == "" || music.url == null) {
-        layer.msg('这首歌不支持下载');
+    if (music.url == 'err' || music.url == "" || music.url == null || music.url === undefined) {
+        layer.msg('这首歌不支持下载', { icon: 2 });
         return;
     }
-    openDownloadDialog(music.url, music.name + ' - ' + music.artist);
+    
+    // 调试信息
+    if (mkPlayer.debug) {
+        console.log('准备下载歌曲:', music.name, '地址:', music.url);
+    }
+    
+    try {
+        // 构建完整的下载URL
+        var downloadUrl = music.url;
+        
+        // 如果是相对路径，构建完整URL
+        if (!downloadUrl.startsWith('http')) {
+            // 获取当前页面的基础URL
+            var baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            if (downloadUrl.startsWith('./')) {
+                downloadUrl = baseUrl + downloadUrl.substring(2);
+            } else if (downloadUrl.startsWith('/')) {
+                downloadUrl = window.location.origin + downloadUrl;
+            } else {
+                downloadUrl = baseUrl + downloadUrl;
+            }
+        }
+        
+        // 构建文件名
+        var fileName = music.name + ' - ' + music.artist + '.mp3';
+        // 清理文件名中的非法字符
+        fileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
+        
+        // GitHub Pages下载处理
+        downloadFromGitHubPages(downloadUrl, fileName, music);
+        
+    } catch (e) {
+        console.error('下载失败:', e);
+        layer.msg('下载失败：' + e.message, { icon: 2 });
+    }
+}
+
+// 专门用于GitHub Pages的下载处理
+function downloadFromGitHubPages(url, fileName, music) {
+    // 方法1: 尝试直接下载
+    try {
+        var aLink = document.createElement('a');
+        aLink.href = url;
+        aLink.download = fileName;
+        aLink.target = '_blank';
+        
+        // 添加到页面并触发点击
+        document.body.appendChild(aLink);
+        aLink.click();
+        document.body.removeChild(aLink);
+        
+        layer.msg('开始下载：' + music.name, { icon: 1, time: 2000 });
+        
+        // 如果2秒后下载没有开始，提供备用方案
+        setTimeout(function() {
+            showDownloadAlternatives(url, fileName, music);
+        }, 2000);
+        
+    } catch (e) {
+        console.error('直接下载失败:', e);
+        showDownloadAlternatives(url, fileName, music);
+    }
+}
+
+// 显示下载备用方案
+function showDownloadAlternatives(url, fileName, music) {
+    var content = '<div style="text-align: left; padding: 20px;">' +
+        '<h3>下载：' + music.name + '</h3>' +
+        '<p>如果自动下载没有开始，请尝试以下方式：</p>' +
+        '<div style="margin: 15px 0;">' +
+            '<button type="button" onclick="openInNewTab(\'' + url + '\')" style="margin: 5px; padding: 8px 15px; background: #007cba; color: white; border: none; cursor: pointer; border-radius: 4px;">在新标签页中打开</button>' +
+        '</div>' +
+        '<div style="margin: 15px 0;">' +
+            '<button type="button" onclick="copyDownloadLink(\'' + url + '\')" style="margin: 5px; padding: 8px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px;">复制下载链接</button>' +
+        '</div>' +
+        '<div style="margin: 15px 0; font-size: 12px; color: #666;">' +
+            '<p><strong>下载链接：</strong></p>' +
+            '<input type="text" value="' + url + '" readonly style="width: 100%; padding: 5px; font-size: 12px; border: 1px solid #ccc;" onclick="this.select()">' +
+        '</div>' +
+        '<div style="margin: 15px 0; font-size: 12px; color: #666;">' +
+            '<p><strong>使用说明：</strong></p>' +
+            '<p>• 点击"在新标签页中打开"，然后右键点击播放器选择"另存为"</p>' +
+            '<p>• 复制链接后，可以使用下载工具（如迅雷、IDM等）进行下载</p>' +
+            '<p>• 或者直接右键点击链接选择"另存为"</p>' +
+        '</div>' +
+    '</div>';
+    
+    layer.open({
+        type: 1,
+        title: '下载选项',
+        area: ['500px', 'auto'],
+        content: content,
+        btn: ['关闭'],
+        btn1: function(index) {
+            layer.close(index);
+        }
+    });
+}
+
+// 在新标签页中打开链接
+function openInNewTab(url) {
+    window.open(url, '_blank');
+    layer.msg('已在新标签页中打开', { icon: 1 });
+}
+
+// 复制下载链接到剪贴板
+function copyDownloadLink(url) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(function() {
+            layer.msg('下载链接已复制到剪贴板', { icon: 1 });
+        }).catch(function(err) {
+            console.error('复制失败:', err);
+            fallbackCopyText(url);
+        });
+    } else {
+        fallbackCopyText(url);
+    }
+}
+
+// 备用复制方法
+function fallbackCopyText(text) {
+    var textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            layer.msg('下载链接已复制到剪贴板', { icon: 1 });
+        } else {
+            layer.msg('复制失败，请手动复制链接', { icon: 2 });
+        }
+    } catch (err) {
+        console.error('复制失败:', err);
+        layer.msg('复制失败，请手动复制链接', { icon: 2 });
+    }
+    
+    document.body.removeChild(textArea);
 }
 
 /**
- * 通用的打开下载对话框方法，没有测试过具体兼容性
+ * 通用的打开下载对话框方法
  * @param url 下载地址，也可以是一个blob对象，必选
  * @param saveName 保存文件名，可选
  * http://www.cnblogs.com/liuxianan/p/js-download.html
@@ -410,17 +605,50 @@ function openDownloadDialog(url, saveName) {
     if (typeof url == 'object' && url instanceof Blob) {
         url = URL.createObjectURL(url); // 创建blob地址
     }
-    var aLink = document.createElement('a');
-    aLink.href = url;
-    aLink.target = "_blank";
-    aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名，可以不要后缀，注意，file:///模式下不会生效
-    var event;
-    if (window.MouseEvent) event = new MouseEvent('click');
-    else {
-        event = document.createEvent('MouseEvents');
-        event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    
+    try {
+        // 创建隐藏的下载链接
+        var aLink = document.createElement('a');
+        aLink.href = url;
+        aLink.target = "_blank";
+        aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名
+        
+        // 添加到DOM中
+        document.body.appendChild(aLink);
+        
+        // 触发点击事件
+        if (typeof aLink.click === 'function') {
+            aLink.click();
+        } else {
+            // 兼容旧浏览器
+            var event;
+            if (window.MouseEvent) {
+                event = new MouseEvent('click');
+            } else {
+                event = document.createEvent('MouseEvents');
+                event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            }
+            aLink.dispatchEvent(event);
+        }
+        
+        // 清理DOM
+        setTimeout(function() {
+            document.body.removeChild(aLink);
+            if (url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+            }
+        }, 100);
+        
+    } catch (e) {
+        console.error('下载失败:', e);
+        // 如果HTML5下载失败，尝试直接打开链接
+        try {
+            window.open(url, '_blank');
+        } catch (openError) {
+            console.error('打开链接也失败:', openError);
+            layer.msg('无法下载文件，请检查浏览器设置', { icon: 2 });
+        }
     }
-    aLink.dispatchEvent(event);
 }
 
 // 获取外链的ajax回调函数
@@ -550,6 +778,13 @@ function loadList(list) {
         }
 
         // listToTop();    // 播放列表滚动到顶部
+        
+        // 更新所有收藏按钮的状态（延迟执行，确保DOM已渲染）
+        setTimeout(function() {
+            for (var i = 0; i < musicList[list].item.length; i++) {
+                updateFavoriteButton(i);
+            }
+        }, 100);
     }
 }
 
@@ -736,6 +971,8 @@ function dataBox(choose) {
             } else if (rem.dislist == 0) {  // 搜索
                 $(".btn[data-action='search']").addClass('active');
             }
+            // 界面切换后刷新进度条
+            refreshProgressBars();
             break;
 
         case "sheet":   // 显示专辑
@@ -747,6 +984,8 @@ function dataBox(choose) {
             $("#sheet").fadeIn();
             $("#main-list").fadeOut();
             $(".btn[data-action='sheet']").addClass('active');
+            // 界面切换后刷新进度条
+            refreshProgressBars();
             break;
 
         case "player":  // 显示播放器
@@ -754,6 +993,8 @@ function dataBox(choose) {
             $("#sheet").fadeOut();
             $("#main-list").fadeOut();
             $(".btn[data-action='player']").addClass('active');
+            // 界面切换后刷新进度条
+            refreshProgressBars();
             break;
     }
 }
@@ -811,8 +1052,12 @@ function initList() {
                 musicList[2].item = tmp_item;
             }
 
+        } else if (i == 3) { // 收藏列表
+            // 初始化收藏列表（不需要ajax加载）
+            loadFavoritesToPlaylist();
+
             // 列表不是用户列表，并且信息为空，需要ajax读取列表
-        } else if (!musicList[i].creatorID && (musicList[i].item == undefined || (i > 2 && musicList[i].item.length == 0))) {
+        } else if (!musicList[i].creatorID && (musicList[i].item == undefined || (i > 3 && musicList[i].item.length == 0))) {
             musicList[i].item = [];
             if (musicList[i].id) {   // 列表ID已定义
                 // 加载本地自定义歌单
@@ -903,4 +1148,337 @@ function playerReaddata(key) {
     if (!window.localStorage) return '';
     key = 'mkPlayer2_' + key;
     return JSON.parse(localStorage.getItem(key));
+}
+
+// =============== 收藏功能 ===============
+
+// 获取收藏列表
+function getFavorites() {
+    // 优先使用localStorage，如果不支持则回退到Cookie
+    if (typeof Storage !== "undefined") {
+        try {
+            var favorites = localStorage.getItem('musicFavorites');
+            if (favorites) {
+                var parsed = JSON.parse(favorites);
+                // 调试信息
+                if (mkPlayer.debug) {
+                    console.log('从localStorage读取收藏，共 ' + parsed.length + ' 首歌曲');
+                }
+                return Array.isArray(parsed) ? parsed : [];
+            }
+        } catch (e) {
+            if (mkPlayer.debug) {
+                console.error('从localStorage读取收藏列表失败:', e);
+            }
+        }
+    }
+    
+    // 回退到Cookie方式（兼容性）
+    var favorites = getCookie('musicFavorites');
+    if (favorites) {
+        try {
+            var parsed = JSON.parse(favorites);
+            // 调试信息
+            if (mkPlayer.debug) {
+                console.log('从Cookie读取收藏，共 ' + parsed.length + ' 首歌曲');
+            }
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            if (mkPlayer.debug) {
+                console.error('解析收藏数据失败:', e);
+            }
+            return [];
+        }
+    }
+    return [];
+}
+
+// 保存收藏列表（优先使用localStorage）
+function saveFavorites(favorites) {
+    var dataString = JSON.stringify(favorites);
+    var success = false;
+    
+    // 优先使用localStorage
+    if (typeof Storage !== "undefined") {
+        try {
+            localStorage.setItem('musicFavorites', dataString);
+            success = true;
+            // 调试信息
+            if (mkPlayer.debug) {
+                console.log('保存收藏到localStorage，共 ' + favorites.length + ' 首歌曲，大小: ' + dataString.length + ' 字符');
+            }
+        } catch (e) {
+            if (mkPlayer.debug) {
+                console.error('localStorage保存失败:', e);
+            }
+        }
+    }
+    
+    // 如果localStorage失败，尝试Cookie（但有大小限制）
+    if (!success) {
+        try {
+            // 检查数据大小
+            if (dataString.length > 3500) { // 留一些余量，避免超过4KB
+                if (mkPlayer.debug) {
+                    console.warn('收藏数据过大 (' + dataString.length + ' 字符)，可能保存失败');
+                }
+                layer.msg('收藏数据过大，建议减少收藏数量', { icon: 2, time: 3000 });
+            }
+            setCookie('musicFavorites', dataString, 365); // 保存1年
+            // 调试信息
+            if (mkPlayer.debug) {
+                console.log('保存收藏到Cookie，共 ' + favorites.length + ' 首歌曲，大小: ' + dataString.length + ' 字符');
+            }
+        } catch (e) {
+            if (mkPlayer.debug) {
+                console.error('Cookie保存失败:', e);
+            }
+            layer.msg('收藏保存失败，数据可能过大', { icon: 2, time: 3000 });
+        }
+    }
+}
+
+// 设置Cookie
+function setCookie(name, value, days) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    // 确保设置正确的路径和域
+    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+}
+
+// 获取Cookie
+function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+// 检查歌曲是否已收藏
+function isFavorite(songItem) {
+    var favorites = getFavorites();
+    return favorites.some(function(fav) {
+        return fav.id === songItem.id;
+    });
+}
+
+// 切换收藏状态
+function toggleFavorite(songIndex) {
+    if (rem.dislist === undefined || !musicList[rem.dislist] || !musicList[rem.dislist].item[songIndex]) {
+        return;
+    }
+    
+    var songItem = musicList[rem.dislist].item[songIndex];
+    var favorites = getFavorites();
+    var isAlreadyFavorite = isFavorite(songItem);
+    
+    // 调试信息
+    if (mkPlayer.debug) {
+        console.log('收藏操作：', songItem.name, '当前收藏状态：', isAlreadyFavorite);
+        console.log('当前收藏列表长度：', favorites.length);
+    }
+    
+    if (isAlreadyFavorite) {
+        // 从收藏中移除
+        favorites = favorites.filter(function(fav) {
+            return fav.id !== songItem.id;
+        });
+        layer.msg('已取消收藏：' + songItem.name, { icon: 2 });
+    } else {
+        // 创建新的收藏对象，避免引用问题
+        var newFavorite = {
+            id: songItem.id,
+            name: songItem.name,
+            artist: songItem.artist,
+            album: songItem.album,
+            url: songItem.url,
+            pic: songItem.pic,
+            lyric: songItem.lyric,
+            source: songItem.source,
+            url_id: songItem.url_id,
+            pic_id: songItem.pic_id,
+            lyric_id: songItem.lyric_id
+        };
+        
+        // 创建新数组，避免引用问题
+        var newFavorites = [];
+        for (var i = 0; i < favorites.length; i++) {
+            newFavorites.push(favorites[i]);
+        }
+        newFavorites.push(newFavorite);
+        favorites = newFavorites;
+        
+        layer.msg('已收藏：' + songItem.name, { icon: 1 });
+    }
+    
+    // 调试信息
+    if (mkPlayer.debug) {
+        console.log('操作后收藏列表长度：', favorites.length);
+    }
+    
+    saveFavorites(favorites);
+    updateFavoriteButton(songIndex);
+    
+    // 重新加载收藏到播放列表
+    loadFavoritesToPlaylist();
+    
+    // 如果当前显示的是收藏列表，刷新列表
+    if (rem.dislist === 3) {
+        loadList(3);
+    }
+}
+
+// 更新收藏按钮样式
+function updateFavoriteButton(songIndex) {
+    if (rem.dislist === undefined || !musicList[rem.dislist] || !musicList[rem.dislist].item[songIndex]) {
+        return;
+    }
+    
+    var songItem = musicList[rem.dislist].item[songIndex];
+    var listItem = $(".list-item[data-no='" + songIndex + "']");
+    
+    // 确保菜单已经加载
+    if (!listItem.data("loadmenu")) {
+        return; // 菜单还没有加载，稍后会在鼠标悬停时更新
+    }
+    
+    var favoriteIcon = listItem.find(".icon-favorite");
+    
+    if (favoriteIcon.length > 0) {
+        if (isFavorite(songItem)) {
+            favoriteIcon.addClass("favorited");
+            favoriteIcon.attr("title", "取消收藏");
+        } else {
+            favoriteIcon.removeClass("favorited");
+            favoriteIcon.attr("title", "添加收藏");
+        }
+    }
+}
+
+// 加载收藏到播放列表
+function loadFavoritesToPlaylist() {
+    var favorites = getFavorites();
+    // 确保收藏列表存在
+    if (musicList[3]) {
+        musicList[3].item = []; // 先清空
+        // 逐个添加收藏的歌曲
+        for (var i = 0; i < favorites.length; i++) {
+            musicList[3].item.push(favorites[i]);
+        }
+        
+        // 调试信息
+        if (mkPlayer.debug) {
+            console.log('收藏列表已更新，共有 ' + favorites.length + ' 首歌曲');
+        }
+    }
+}
+
+// 初始化收藏功能
+function initFavorites() {
+    // 数据迁移：将Cookie中的收藏数据迁移到localStorage
+    migrateFavoritesData();
+    loadFavoritesToPlaylist();
+}
+
+// 数据迁移：从Cookie迁移到localStorage
+function migrateFavoritesData() {
+    if (typeof Storage !== "undefined") {
+        // 检查localStorage中是否已有数据
+        var localData = localStorage.getItem('musicFavorites');
+        
+        if (!localData) {
+            // localStorage没有数据，检查Cookie中是否有数据需要迁移
+            var cookieData = getCookie('musicFavorites');
+            if (cookieData) {
+                try {
+                    // 验证Cookie数据的有效性
+                    var parsed = JSON.parse(cookieData);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        // 迁移数据到localStorage
+                        localStorage.setItem('musicFavorites', cookieData);
+                        
+                        // 调试信息
+                        if (mkPlayer.debug) {
+                            console.log('已将 ' + parsed.length + ' 首收藏歌曲从Cookie迁移到localStorage');
+                        }
+                        
+                        // 可选：清除Cookie中的数据（释放空间）
+                        // document.cookie = "musicFavorites=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    }
+                } catch (e) {
+                    if (mkPlayer.debug) {
+                        console.error('迁移收藏数据时解析失败:', e);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 刷新进度条偏移量（用于解决初始化时机问题）
+function refreshProgressBars() {
+    setTimeout(function() {
+        if (music_bar && music_bar.updateOffset) {
+            music_bar.updateOffset();
+        }
+        if (volume_bar && volume_bar.updateOffset) {
+            volume_bar.updateOffset();
+        }
+    }, 100);
+}
+
+// 全屏歌词功能
+function enterFullscreenLyric() {
+    if (rem.playid === undefined) return;
+    
+    var music = musicList[rem.playlist].item[rem.playid];
+    
+    // 更新全屏歌词的歌曲信息
+    $(".fullscreen-song-name").text(music.name);
+    $(".fullscreen-song-artist").text(music.artist);
+    
+    // 复制当前歌词到全屏容器
+    var currentLyric = $("#lyric").html();
+    $("#fullscreen-lyric").html(currentLyric);
+    
+    // 显示全屏容器
+    $("#fullscreen-lyric-container").fadeIn(300);
+    
+    // 滚动到当前播放的歌词
+    scrollFullscreenLyricToPlaying();
+}
+
+function exitFullscreenLyric() {
+    $("#fullscreen-lyric-container").fadeOut(300);
+}
+
+function scrollFullscreenLyricToPlaying() {
+    var playingLyric = $("#fullscreen-lyric .lplaying");
+    if (playingLyric.length > 0) {
+        var container = $(".fullscreen-lyric-content");
+        var scrollTop = playingLyric.offset().top - container.offset().top + container.scrollTop() - container.height() / 2;
+        container.animate({
+            scrollTop: scrollTop
+        }, 500);
+    }
+}
+
+// 同步全屏歌词的滚动（在歌词更新时调用）
+function syncFullscreenLyric() {
+    if ($("#fullscreen-lyric-container").is(":visible")) {
+        // 复制当前歌词到全屏容器
+        var currentLyric = $("#lyric").html();
+        $("#fullscreen-lyric").html(currentLyric);
+        
+        // 滚动到当前播放的歌词
+        scrollFullscreenLyricToPlaying();
+    }
 }

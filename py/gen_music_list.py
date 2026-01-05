@@ -73,6 +73,10 @@ def main(args) :
             if not file.lower().endswith(tuple(MUSIC_SUFFIXES)) :
                 continue
 
+            if any(kw in file.lower() for kw in ignores) :
+                log.warn(f"跳过文件： {file}")
+                continue
+
             absolute_path = os.path.join(root, file)
             rel_path = os.path.relpath(absolute_path, WORK_DIR).replace("\\", "/")
             rel_dir = os.path.dirname(rel_path)
@@ -163,6 +167,10 @@ class MusicList:
         return len(self.item)
 
     def save_to_file(self, file_path):
+        # 根据 url 字段排序歌曲列表
+        sorted_items = sorted(self.item, key=lambda x: x.get('url', ''))
+        self.item = sorted_items
+        
         with open(file_path, 'w+', encoding=DEFAULT_ENCODING) as file:
             json.dump([self.__dict__], file, ensure_ascii=False, indent=4)
 

@@ -19,7 +19,19 @@ jobs:
       uses: actions/checkout@v3
       with:
         ref: master
-        fetch-depth: 0
+        fetch-depth: 1
+
+    - name: Disk usage (before)
+      run: |
+        df -h
+        du -h -d 2 "$GITHUB_WORKSPACE" | sort -h | tail -n 30 || true
+        du -sh ~/.cache/pip || true
+
+    - name: Free space
+      run: |
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+        sudo apt-get clean || true
+        df -h
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -27,18 +39,19 @@ jobs:
         python-version: 3.9
 
     - name: Install dependencies
-      run: pip install -r py/requirements.txt
+      run: python -m pip install --no-cache-dir -r py/requirements.txt
 
     - name: Run update_music_list.py
-      run: python py/gen_music_list.py -i "${{ vars.ignores }}"
+      run: |
+        python py/gen_music_list.py -i "${{ vars.ignores }}"
 
     - name: Check for changes
       id: changes
       run: |
         if git diff --name-only | grep -q "music_list_"; then
-          echo "::set-output name=has_changes::true"
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
         else
-          echo "::set-output name=has_changes::false"
+          echo "has_changes=false" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Commit and push changes

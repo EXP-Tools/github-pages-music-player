@@ -106,10 +106,25 @@
                     <div class="lyric">
                         <ul id="lyric"></ul>
                     </div>
+                    <div id="lyric-fullscreen" title="点击进入歌词全屏模式"></div>
                     <div id="music-info" title="点击查看歌曲信息"></div>
                 </div>
             </div> <!--class="container"-->
         </div> <!--class="center"-->
+
+        <!-- 全屏歌词模式 -->
+        <div id="fullscreen-lyric-container" class="fullscreen-lyric-container">
+            <div class="fullscreen-lyric-header">
+                <div class="fullscreen-song-info">
+                    <div class="fullscreen-song-name"></div>
+                    <div class="fullscreen-song-artist"></div>
+                </div>
+                <div id="exit-fullscreen" class="exit-fullscreen-btn" title="退出全屏模式">×</div>
+            </div>
+            <div class="fullscreen-lyric-content">
+                <ul id="fullscreen-lyric"></ul>
+            </div>
+        </div>
 
         <!-- 播放器底部区域 -->
         <div class="footer">
